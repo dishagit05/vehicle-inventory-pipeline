@@ -81,3 +81,33 @@ ORDER BY days_until_transition ASC;
 ## Refresh Strategy
 
 Call `SP_REFRESH_INVENTORY_HEALTH()` to truncate and reload the target table. Schedule via Snowflake Task or external orchestrator as needed.
+
+## Streamlit Dashboard
+
+### Setup
+
+1. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+2. Create `.streamlit/secrets.toml` in the project root:
+```toml
+[snowflake]
+account = "your_account_locator"
+user = "your_username"
+password = "your_password"
+warehouse = "your_warehouse"
+```
+
+3. Run the app:
+```bash
+streamlit run app.py
+```
+
+### Features
+
+- **KPI Cards**: Total Vehicles, Avg Days on Lot, Red Category Count, Inventory Value
+- **Charts**: Aging Bucket distribution, Inventory by Make, Inventory by Dealer, Top 10 Oldest Vehicles
+- **Filters**: Dealer, Make, Model, Aging Bucket (sidebar multiselect)
+- **Data Table**: Filterable raw data view

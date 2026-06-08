@@ -12,6 +12,7 @@ Identify slow-moving inventory and track vehicle aging across dealerships.
 | `SP_REFRESH_INVENTORY_HEALTH` | Stored Procedure | `VEHICLE_DB.VEHICLE_SCHEMA` |
 | `VW_INVENTORY_HEALTH_METRICS` | View | `VEHICLE_DB.VEHICLE_SCHEMA` |
 | `VW_DATA_QUALITY_CHECKS` | View | `VEHICLE_DB.VEHICLE_SCHEMA` |
+| `VW_AGING_RISK_FORECAST` | View | `VEHICLE_DB.VEHICLE_SCHEMA` |
 
 ## Aging Categories
 
@@ -60,6 +61,13 @@ SELECT * FROM VEHICLE_DB.VEHICLE_SCHEMA.VW_DATA_QUALITY_CHECKS;
 SELECT * FROM VEHICLE_DB.VEHICLE_SCHEMA.INVENTORY_HEALTH
 WHERE aging_category = 'RED' AND status = 'AVAILABLE'
 ORDER BY days_on_lot DESC;
+```
+
+### View vehicles at risk of aging (15-day forecast)
+```sql
+SELECT * FROM VEHICLE_DB.VEHICLE_SCHEMA.VW_AGING_RISK_FORECAST
+WHERE at_risk = TRUE
+ORDER BY days_until_transition ASC;
 ```
 
 ## Data Quality Checks

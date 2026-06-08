@@ -12,6 +12,7 @@
     3. VEHICLE_DB.VEHICLE_SCHEMA.SP_REFRESH_INVENTORY_HEALTH - Refresh procedure
     4. VEHICLE_DB.VEHICLE_SCHEMA.VW_INVENTORY_HEALTH_METRICS - Aggregated KPIs
     5. VEHICLE_DB.VEHICLE_SCHEMA.VW_DATA_QUALITY_CHECKS      - Data quality checks
+    6. VEHICLE_DB.VEHICLE_SCHEMA.VW_AGING_RISK_FORECAST      - 15-day aging forecast
 
   Aging Categories:
     GREEN  : < 30 days on lot (healthy turnover)
@@ -260,6 +261,45 @@ SELECT check_type, check_description, records_failed,
 FROM validity_checks;
 
 -- ============================================================================
+-- STEP 7: Create Aging Risk Forecast View (15-day lookahead)
+-- ============================================================================
+CREATE OR REPLACE VIEW VEHICLE_DB.VEHICLE_SCHEMA.VW_AGING_RISK_FORECAST AS
+SELECT
+    vehicle_id,
+    vin,
+    make,
+    model,
+    dealer_id,
+    acquisition_date,
+    current_price,
+    status,
+    days_on_lot,
+    aging_category AS current_category,
+    days_on_lot + 15 AS projected_days_on_lot,
+    CASE
+        WHEN days_on_lot + 15 < 30 THEN 'GREEN'
+        WHEN days_on_lot + 15 BETWEEN 30 AND 60 THEN 'YELLOW'
+        ELSE 'RED'
+    END AS projected_category,
+    CASE
+        WHEN aging_category = 'GREEN' AND days_on_lot + 15 >= 30 THEN TRUE
+        WHEN aging_category = 'YELLOW' AND days_on_lot + 15 > 60 THEN TRUE
+        ELSE FALSE
+    END AS at_risk,
+    CASE
+        WHEN aging_category = 'GREEN' THEN 30 - days_on_lot
+        WHEN aging_category = 'YELLOW' THEN 61 - days_on_lot
+        ELSE NULL
+    END AS days_until_transition,
+    CASE
+        WHEN aging_category = 'GREEN' AND days_on_lot + 15 >= 30 THEN 'GREEN -> YELLOW'
+        WHEN aging_category = 'YELLOW' AND days_on_lot + 15 > 60 THEN 'YELLOW -> RED'
+        ELSE NULL
+    END AS risk_transition
+FROM VEHICLE_DB.VEHICLE_SCHEMA.INVENTORY_HEALTH
+WHERE status != 'SOLD';
+
+-- ============================================================================
 -- USAGE EXAMPLES
 -- ============================================================================
 
@@ -276,3 +316,8 @@ FROM validity_checks;
 -- SELECT * FROM VEHICLE_DB.VEHICLE_SCHEMA.INVENTORY_HEALTH
 -- WHERE aging_category = 'RED' AND status = 'AVAILABLE'
 -- ORDER BY days_on_lot DESC;
+
+-- View vehicles at risk of aging within 15 days:
+-- SELECT * FROM VEHICLE_DB.VEHICLE_SCHEMA.VW_AGING_RISK_FORECAST
+-- WHERE at_risk = TRUE
+-- ORDER BY days_until_transition ASC;

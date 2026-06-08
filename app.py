@@ -26,18 +26,19 @@ def load_data():
         database="VEHICLE_DB",
         schema="VEHICLE_SCHEMA",
     )
-    query = "SELECT * FROM VEHICLE_DB.VEHICLE_SCHEMA.INVENTORY_HEALTH"
-    df = pd.read_sql(query, conn)
+    df = pd.read_sql("SELECT * FROM VEHICLE_DB.VEHICLE_SCHEMA.INVENTORY_HEALTH", conn)
+    df_risk = pd.read_sql("SELECT * FROM VEHICLE_DB.VEHICLE_SCHEMA.VW_AGING_RISK_FORECAST WHERE AT_RISK = TRUE", conn)
     conn.close()
     df.columns = df.columns.str.upper()
-    return df
+    df_risk.columns = df_risk.columns.str.upper()
+    return df, df_risk
 
 
 def main():
     st.title("Vehicle Inventory Health Analytics")
     st.markdown("Track vehicle aging and identify slow-moving inventory.")
 
-    df = load_data()
+    df, df_risk = load_data()
 
     # --- Sidebar Filters ---
     st.sidebar.header("Filters")
@@ -75,6 +76,15 @@ def main():
     col2.metric("Avg Days on Lot", f"{avg_days:.1f}")
     col3.metric("Vehicles in Red", f"{red_count}")
     col4.metric("Inventory Value", f"${total_value:,.0f}")
+
+    # At-risk KPI
+    risk_filtered = df_risk[
+        (df_risk["DEALER_ID"].isin(selected_dealers))
+        & (df_risk["MAKE"].isin(selected_makes))
+        & (df_risk["MODEL"].isin(selected_models))
+    ]
+    col5 = st.columns(4)[0]
+    col5.metric("Vehicles At Risk (15-day)", f"{len(risk_filtered)}")
 
     st.markdown("---")
 
@@ -176,6 +186,48 @@ def main():
         use_container_width=True,
         hide_index=True,
     )
+
+    # --- At-Risk Vehicles (15-Day Forecast) ---
+    st.markdown("---")
+    st.subheader("Vehicles At Risk — 15-Day Aging Forecast")
+    st.markdown("Vehicles projected to move into a worse aging category within 15 days.")
+
+    if len(risk_filtered) > 0:
+        risk_col1, risk_col2 = st.columns(2)
+
+        with risk_col1:
+            risk_chart = risk_filtered[["MAKE", "MODEL", "DAYS_ON_LOT", "DAYS_UNTIL_TRANSITION", "RISK_TRANSITION"]].copy()
+            risk_chart["LABEL"] = risk_chart["MAKE"] + " " + risk_chart["MODEL"]
+            fig_risk = px.bar(
+                risk_chart,
+                x="DAYS_UNTIL_TRANSITION",
+                y="LABEL",
+                orientation="h",
+                color="RISK_TRANSITION",
+                color_discrete_map={
+                    "GREEN -> YELLOW": "#f1c40f",
+                    "YELLOW -> RED": "#e74c3c",
+                },
+            )
+            fig_risk.update_layout(
+                xaxis_title="Days Until Transition",
+                yaxis_title="",
+                yaxis={"categoryorder": "total ascending"},
+                legend_title_text="Transition",
+            )
+            st.plotly_chart(fig_risk, use_container_width=True)
+
+        with risk_col2:
+            st.dataframe(
+                risk_filtered[
+                    ["VEHICLE_ID", "MAKE", "MODEL", "DEALER_ID", "DAYS_ON_LOT",
+                     "CURRENT_CATEGORY", "PROJECTED_CATEGORY", "DAYS_UNTIL_TRANSITION", "RISK_TRANSITION"]
+                ].sort_values("DAYS_UNTIL_TRANSITION", ascending=True),
+                use_container_width=True,
+                hide_index=True,
+            )
+    else:
+        st.info("No vehicles are at risk of aging within the next 15 days.")
 
 
 if __name__ == "__main__":

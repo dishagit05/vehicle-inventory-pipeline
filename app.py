@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import snowflake.connector
+from cryptography.hazmat.primitives import serialization
+from pathlib import Path
 
 st.set_page_config(
     page_title="Vehicle Inventory Health Analytics",
@@ -12,10 +14,14 @@ st.set_page_config(
 
 @st.cache_data(ttl=300)
 def load_data():
+    key_path = Path(__file__).parent / ".keys" / "rsa_key.p8"
+    with open(key_path, "rb") as f:
+        private_key = serialization.load_pem_private_key(f.read(), password=None)
+
     conn = snowflake.connector.connect(
         account=st.secrets["snowflake"]["account"],
         user=st.secrets["snowflake"]["user"],
-        password=st.secrets["snowflake"]["password"],
+        private_key=private_key,
         warehouse=st.secrets["snowflake"]["warehouse"],
         database="VEHICLE_DB",
         schema="VEHICLE_SCHEMA",

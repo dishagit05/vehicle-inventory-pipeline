@@ -1,0 +1,5 @@
+# Private keys
+.keys/rsa_key.p8
+
+# Streamlit secrets
+.streamlit/secrets.toml

@@ -18,9 +18,9 @@ Identify slow-moving inventory and track vehicle aging across dealerships.
 
 | Category | Days on Lot | Action |
 |----------|-------------|--------|
-| GREEN | < 45 days | Healthy turnover |
-| YELLOW | 46-65 days | Monitor closely |
-| RED | > 65 days | Slow-moving, action needed |
+| GREEN | < 50 days | Healthy turnover |
+| YELLOW | 51-80 days | Monitor closely |
+| RED | > 80 days | Slow-moving, action needed |
 
 ## INVENTORY_HEALTH Columns
 

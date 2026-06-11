@@ -52,17 +52,17 @@ Dealerships lack visibility into aging inventory, resulting in capital tied up i
 | current_price | NUMBER(12,2) | Pass-through |
 | status | VARCHAR(20) | Pass-through |
 | days_on_lot | INT | `DATEDIFF(day, acquisition_date, CURRENT_DATE())` |
-| aging_category | VARCHAR(6) | GREEN (<45), YELLOW (46-65), RED (>65) |
-| is_slow_moving | BOOLEAN | TRUE if days_on_lot > 65 |
+| aging_category | VARCHAR(6) | GREEN (<50), YELLOW (51-80), RED (>80) |
+| is_slow_moving | BOOLEAN | TRUE if days_on_lot > 80 |
 | last_refreshed_at | TIMESTAMP | `CURRENT_TIMESTAMP()` at refresh time |
 
 ### 3.2 Aging Category Rules
 
 | Category | Condition | Business Meaning |
 |----------|-----------|------------------|
-| GREEN | days_on_lot < 45 | Healthy turnover, no action needed |
-| YELLOW | 46 <= days_on_lot <= 65 | Monitor closely, consider pricing adjustments |
-| RED | days_on_lot > 65 | Slow-moving, immediate action required |
+| GREEN | days_on_lot < 50 | Healthy turnover, no action needed |
+| YELLOW | 51 <= days_on_lot <= 80 | Monitor closely, consider pricing adjustments |
+| RED | days_on_lot > 80 | Slow-moving, immediate action required |
 
 ### 3.3 Predictive Aging (15-Day Forecast)
 
@@ -70,8 +70,8 @@ Dealerships lack visibility into aging inventory, resulting in capital tied up i
 
 | Rule | Condition | Output |
 |------|-----------|--------|
-| At-risk GREEN | days_on_lot + 15 >= 45 | Flagged as GREEN -> YELLOW |
-| At-risk YELLOW | days_on_lot + 15 > 65 | Flagged as YELLOW -> RED |
+| At-risk GREEN | days_on_lot + 15 >= 50 | Flagged as GREEN -> YELLOW |
+| At-risk YELLOW | days_on_lot + 15 > 80 | Flagged as YELLOW -> RED |
 | Already RED | N/A | Not flagged (already worst category) |
 | SOLD vehicles | status = 'SOLD' | Excluded from forecast |
 
@@ -212,9 +212,9 @@ vehicle-inventory-pipeline/
 | Test | Method | Expected Result |
 |------|--------|-----------------|
 | Aging calculation | Query INVENTORY_HEALTH | days_on_lot matches DATEDIFF from acquisition_date |
-| Category assignment | Query WHERE days_on_lot = 45 | Should be YELLOW |
-| Category boundary | Query WHERE days_on_lot = 65 | Should be YELLOW (BETWEEN is inclusive) |
-| Category boundary | Query WHERE days_on_lot = 66 | Should be RED |
+| Category assignment | Query WHERE days_on_lot = 51 | Should be YELLOW |
+| Category boundary | Query WHERE days_on_lot = 80 | Should be YELLOW (BETWEEN is inclusive) |
+| Category boundary | Query WHERE days_on_lot = 81 | Should be RED |
 | Forecast accuracy | Query VW_AGING_RISK_FORECAST | at_risk = TRUE only for threshold-crossing vehicles |
 | Data quality | Query VW_DATA_QUALITY_CHECKS | All checks PASS on clean data |
 | Refresh procedure | CALL SP_REFRESH_INVENTORY_HEALTH() | Returns success message, table updated |

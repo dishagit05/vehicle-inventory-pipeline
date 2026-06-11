@@ -15,9 +15,9 @@
     6. VEHICLE_DB.VEHICLE_SCHEMA.VW_AGING_RISK_FORECAST      - 15-day aging forecast
 
   Aging Categories:
-    GREEN  : < 45 days on lot (healthy turnover)
-    YELLOW : 46-65 days on lot (monitor closely)
-    RED    : > 65 days on lot (slow-moving, action needed)
+    GREEN  : < 50 days on lot (healthy turnover)
+    YELLOW : 51-80 days on lot (monitor closely)
+    RED    : > 80 days on lot (slow-moving, action needed)
 
   Refresh Strategy:
     Call SP_REFRESH_INVENTORY_HEALTH() to truncate and reload
@@ -61,12 +61,12 @@ SELECT
     status,
     DATEDIFF(day, acquisition_date, CURRENT_DATE()) AS days_on_lot,
     CASE
-        WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) < 45 THEN 'GREEN'
-        WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) BETWEEN 46 AND 65 THEN 'YELLOW'
+        WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) < 50 THEN 'GREEN'
+        WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) BETWEEN 51 AND 80 THEN 'YELLOW'
         ELSE 'RED'
     END AS aging_category,
     CASE
-        WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) > 65 THEN TRUE
+        WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) > 80 THEN TRUE
         ELSE FALSE
     END AS is_slow_moving,
     CURRENT_TIMESTAMP() AS last_refreshed_at
@@ -96,12 +96,12 @@ BEGIN
         status,
         DATEDIFF(day, acquisition_date, CURRENT_DATE()) AS days_on_lot,
         CASE
-            WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) < 45 THEN 'GREEN'
-            WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) BETWEEN 46 AND 65 THEN 'YELLOW'
+            WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) < 50 THEN 'GREEN'
+            WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) BETWEEN 51 AND 80 THEN 'YELLOW'
             ELSE 'RED'
         END AS aging_category,
         CASE
-            WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) > 65 THEN TRUE
+            WHEN DATEDIFF(day, acquisition_date, CURRENT_DATE()) > 80 THEN TRUE
             ELSE FALSE
         END AS is_slow_moving,
         CURRENT_TIMESTAMP() AS last_refreshed_at
@@ -277,23 +277,23 @@ SELECT
     aging_category AS current_category,
     days_on_lot + 15 AS projected_days_on_lot,
     CASE
-        WHEN days_on_lot + 15 < 45 THEN 'GREEN'
-        WHEN days_on_lot + 15 BETWEEN 46 AND 65 THEN 'YELLOW'
+        WHEN days_on_lot + 15 < 50 THEN 'GREEN'
+        WHEN days_on_lot + 15 BETWEEN 51 AND 80 THEN 'YELLOW'
         ELSE 'RED'
     END AS projected_category,
     CASE
-        WHEN aging_category = 'GREEN' AND days_on_lot + 15 >= 45 THEN TRUE
-        WHEN aging_category = 'YELLOW' AND days_on_lot + 15 > 65 THEN TRUE
+        WHEN aging_category = 'GREEN' AND days_on_lot + 15 >= 50 THEN TRUE
+        WHEN aging_category = 'YELLOW' AND days_on_lot + 15 > 80 THEN TRUE
         ELSE FALSE
     END AS at_risk,
     CASE
-        WHEN aging_category = 'GREEN' THEN 45 - days_on_lot
-        WHEN aging_category = 'YELLOW' THEN 66 - days_on_lot
+        WHEN aging_category = 'GREEN' THEN 50 - days_on_lot
+        WHEN aging_category = 'YELLOW' THEN 81 - days_on_lot
         ELSE NULL
     END AS days_until_transition,
     CASE
-        WHEN aging_category = 'GREEN' AND days_on_lot + 15 >= 45 THEN 'GREEN -> YELLOW'
-        WHEN aging_category = 'YELLOW' AND days_on_lot + 15 > 65 THEN 'YELLOW -> RED'
+        WHEN aging_category = 'GREEN' AND days_on_lot + 15 >= 50 THEN 'GREEN -> YELLOW'
+        WHEN aging_category = 'YELLOW' AND days_on_lot + 15 > 80 THEN 'YELLOW -> RED'
         ELSE NULL
     END AS risk_transition
 FROM VEHICLE_DB.VEHICLE_SCHEMA.INVENTORY_HEALTH
